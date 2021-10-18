@@ -28,15 +28,35 @@ io.on('connection', socket => {
     socket.join(roomId)
     socket.to(roomId).emit('user-connected', userId);
     // messages
-    socket.on('message', (message) => {
-      //send message to the same room
-      io.to(roomId).emit('createMessage', message)
-  }); 
+  
+    
 
     socket.on('disconnect', () => {
       socket.to(roomId).emit('user-disconnected', userId)
     })
   })
+})
+
+const users = {};
+
+io.on('connection', socket =>{
+  
+    // If any new user joins, let other users connected to the server know!
+    socket.on('new-user-joined', name =>{ 
+        // console.log("New user",name)
+        users[socket.id] = name;
+        socket.broadcast.emit('user-joined', name);
+    });
+
+    // If someone sends a message, broadcast it to other people
+    socket.on('send', message =>{
+        socket.broadcast.emit('receive', {message: message, name: users[socket.id]})
+    });
+    socket.on('disconnect', message =>{
+        socket.broadcast.emit('left', users[socket.id]);
+        delete users[socket.id];
+    });
+
 })
 
 server.listen(process.env.PORT||3030)
