@@ -1,12 +1,18 @@
 const socket = io('/')
 const videoGrid = document.getElementById('video-grid')
 const myPeer = new Peer(undefined,{
-    path:'/peerjs',
-    host:'/',
-    port:'443'
+  path:'/peerjs',
+  host:'/',
+  port:'443'
 })
 let myVideoStream;
 const myVideo = document.createElement('video')
+
+const form = document.getElementById('send-container');
+const messageInput = document.getElementById('messageInp');
+const messageContainer = document.querySelector(".container");
+var audio= new Audio('ting1.mp3');
+
 myVideo.muted = true;
 const peers = {}
 navigator.mediaDevices.getUserMedia({
@@ -27,19 +33,12 @@ navigator.mediaDevices.getUserMedia({
     connectToNewUser(userId, stream)
   })
   
-  let text = $("input");
+ 
  
   $('html').keydown(function (e) {
-    if (e.which == 13 && text.val().length !== 0) {
-        console.log(text.val())
-      socket.emit('message', text.val());
-      text.val('')
-    }
+   
   });
-  socket.on("createMessage", message => {
-    $("ul").append(`<li class="message"><b>Incognito:</b><br/>${message}</li>`);
-    scrollToBottom()
-  })
+
 })
 
 socket.on('user-disconnected', userId => {
@@ -133,3 +132,45 @@ const setPlayVideo = () => {
   `
   document.querySelector('.main__video_button').innerHTML = html;
 }
+
+
+
+// Function which will append event info to the contaner
+const append = (message, position)=>{
+    const messageElement = document.createElement('div');
+    messageElement.innerText = message;
+    messageElement.classList.add('message');
+    messageElement.classList.add(position);
+    messageContainer.append(messageElement);
+    if(position=='left'){
+        
+        audio.play();}
+        
+
+
+}
+
+form.addEventListener('submit',(e)=>{
+    e.preventDefault();
+    const message =messageInput.value;
+    append(`You: ${message}`,'right');
+    socket.emit('send',message);
+    messageInput.value='';
+    
+
+})
+
+// Ask new user for his/her name and let the server know
+const name = prompt("Enter your name to join");
+socket.emit('new-user-joined', name);
+
+// If a new user joins, receive his/her name from the server
+socket.on('user-joined', name =>{
+    append(`${name}  joined the chat`, 'left')
+});
+socket.on('receive', data =>{
+    append(`${data.name}: ${data.message} `, 'left')
+});
+socket.on('left', name =>{
+    append(`${name} left the chat. `, 'left')
+});
